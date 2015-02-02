@@ -78,7 +78,7 @@ public class PicassoFragment extends BaseFragment {
 
     public class ListFetcher extends AsyncTask<String, Void, ArrayList<Card>> {
         private static final String TAG = "ModelFetcher.java";
-        private String SERVER_URL = "http://virtualdesign.azurewebsites.net/api/models";
+        private String SERVER_URL = "http://virtualdesign.azurewebsites.net/api/models/getmodelstemp";
         //private ArrayList<Card> mItemList;
 
         @Override

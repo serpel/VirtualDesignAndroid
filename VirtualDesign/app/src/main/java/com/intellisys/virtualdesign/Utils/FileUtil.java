@@ -13,6 +13,15 @@ import java.io.File;
 public class FileUtil {
 
     public final String TAG = "Utils.java";
+    public String HomePath = "/virtualdesign/";
+
+    public FileUtil(){}
+
+    public FileUtil(String homepath){
+        this.HomePath = homepath;
+    }
+
+
     public File createFileInStorage(Context context, String url){
         File file = null;
 
@@ -21,7 +30,7 @@ public class FileUtil {
 
             if(isExternalStorageWritable()){
                 String root = Environment.getExternalStorageDirectory().toString();
-                File myDir = new File(root + "/virtualdesign/");
+                File myDir = new File(root + HomePath);
 
                 myDir.mkdirs();
 
@@ -29,21 +38,6 @@ public class FileUtil {
             }else{
                 file = File.createTempFile(filename, null, context.getCacheDir());
             }
-
-        }catch (Exception e){
-            Log.e(TAG, e.getMessage());
-        }
-
-        return file;
-    }
-
-    public File createFileCache(Context context, String url){
-
-        File file = null;
-
-        try{
-            String filename = Uri.parse(url).getLastPathSegment();
-            file = File.createTempFile(filename, null, context.getCacheDir());
 
         }catch (Exception e){
             Log.e(TAG, e.getMessage());

@@ -41,14 +41,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 
 import it.gmariotti.cardslib.library.internal.Card;
 
 public class InteractiveFurniture extends ARViewActivity
 {
 	private MetaioSDKCallbackHandler mCallbackHandler;
-	private IGeometry mTV;
-    private IGeometry mObject;
+    private ArrayList<IGeometry> objectList;
 	private GestureHandlerAndroid mGestureHandler;
 	private TrackingValues mTrackingValues;
 	private int mGestureMask;
@@ -122,6 +122,8 @@ public class InteractiveFurniture extends ARViewActivity
 		mGestureHandler = new GestureHandlerAndroid(metaioSDK, mGestureMask);
 		mMidPoint = new Vector2d();
 
+        objectList = new ArrayList<>();
+
 		mImageFile = new File(Environment.getExternalStorageDirectory(), "target.jpg");
 
         //new ModelFetcher().execute(serverURL);
@@ -142,7 +144,6 @@ public class InteractiveFurniture extends ARViewActivity
                 fragmentTransaction.commit();
             }
         }*/
-        count = 0;
 	}
 
 
@@ -150,22 +151,7 @@ public class InteractiveFurniture extends ARViewActivity
     {
         try {
 
-            /*
-            mTV.setVisible(true);
-            Vector3d translation = metaioSDK.get3DPositionFromViewportCoordinates(1, mMidPoint);
-            mTV.setTranslation(translation);
-            mTV.setScale(50f);*/
-
             openFragment(new PicassoFragment());
-           // File file = AssetsManager.getAssetPathAsFile(getApplicationContext(), "tv.obj");
-            //addCustomModel(file);
-
-           // Vector3d translation = metaioSDK.get3DPositionFromViewportCoordinates(1, mMidPoint);
-           // mObject.setTranslation(translation);
-            //mObject.setScale(50f);
-            //mObject.setVisible(true);
-            //Log.i(TAG, " x: " + translation.getX() + " y: " + translation.getY());
-
 
         }catch (Exception e){
             Log.e(TAG, "No se puede abrir lista");
@@ -332,25 +318,34 @@ public class InteractiveFurniture extends ARViewActivity
             );
     }
 
+    private void exitsObject(String filename, String homeFolder){
+
+
+    }
     public void loadModel(File file)
     {
         if(file == null)
             return;
 
-        boolean result = metaioSDK.setTrackingConfiguration("ORIENTATION_FLOOR");
-        Log.i(TAG, "load: " + result );
-        MetaioDebug.log("Tracking data loaded: " + result);
+        File filepath =
+                AssetsManager.getAssetPathAsFile(getApplicationContext(),
+                        "tv.obj");
 
-        mObject = metaioSDK.createGeometry(file);
+        IGeometry mObject = metaioSDK.createGeometry(filepath);
+
         if (mObject != null)
         {
             mObject.setScale(40f);
             mObject.setRotation(new Rotation((float)Math.PI / 2f, 0f, -(float)Math.PI / 4f));
             mObject.setTranslation(new Vector3d(0f, 10f, 0f));
-            mObject.setVisible(true);
-            mGestureHandler.addObject(mObject, count);
-            count++;
+            mGestureHandler.addObject(mObject, count++);
 
+            Vector3d translation = metaioSDK.get3DPositionFromViewportCoordinates(1, mMidPoint);
+            mObject.setTranslation(translation);
+            mObject.setScale(50f);
+            mObject.setVisible(true);
+
+            objectList.add(mObject);
             /*
             Vector3d translation = metaioSDK.get3DPositionFromViewportCoordinates(1, mMidPoint);
             mObject.setTranslation(translation);
@@ -373,29 +368,6 @@ public class InteractiveFurniture extends ARViewActivity
 			// TODO: Load desired tracking data for planar marker tracking
 			boolean result = metaioSDK.setTrackingConfiguration("ORIENTATION_FLOOR");
 			MetaioDebug.log("Tracking data loaded: " + result);
-
-			// Load all the geometries
-			// Load TV
-
-			File filepath =
-					AssetsManager.getAssetPathAsFile(getApplicationContext(),
-							"tv.obj");
-			if (filepath != null)
-			{
-				mTV = metaioSDK.createGeometry(filepath);
-
-				if (mTV != null)
-				{
-					mTV.setScale(50f);
-					mTV.setRotation(new Rotation((float)Math.PI / 2f, 0f, -(float)Math.PI / 4f));
-					mTV.setTranslation(new Vector3d(0f, 10f, 0f));
-					mGestureHandler.addObject(mTV, 1);
-				}
-				else
-				{
-					MetaioDebug.log(Log.ERROR, "Error loading geometry: " + filepath);
-				}
-			}
 		}
 		catch (Exception e)
 		{
@@ -609,10 +581,11 @@ public class InteractiveFurniture extends ARViewActivity
                 int fileLength = connection.getContentLength();
                 input = new BufferedInputStream(connection.getInputStream());
 
+                //Aqui creo el archivo en el storage externo o en el cache
                 FileUtil u = new FileUtil();
                 File file = u.createFileInStorage(getApplicationContext(), url.toString());
-
-                if(file != null) {
+                //file = null;
+                if(file != null && !file.exists()) {
                     output = new FileOutputStream(file);
 
                     byte data[] = new byte[4096];
@@ -630,8 +603,8 @@ public class InteractiveFurniture extends ARViewActivity
                         }
                         output.write(data, 0, count);
                     }
-                   mFile = file;
                 }
+                mFile = file;
 
             } catch (Exception e){
                 return e.toString();
