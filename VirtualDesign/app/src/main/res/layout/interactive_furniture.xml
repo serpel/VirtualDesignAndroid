@@ -26,7 +26,16 @@
         android:orientation="vertical" >
 
         <ImageButton
-            android:id="@+id/button4"
+            android:id="@+id/button_screenshot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="onSaveScreen"
+            android:src="@drawable/ic_share"
+            android:visibility="invisible"
+            android:text="Save Screen" />
+
+        <ImageButton
+            android:id="@+id/button_camera"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="onSaveOrReset"
@@ -34,18 +43,21 @@
             android:text="Reset" />
 
         <ImageButton
-            android:id="@+id/button2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="onSaveScreen"
-            android:src="@drawable/screenshot"
-            android:text="Save Screen" />
-
-        <Button
-            android:id="@+id/button6"
+            android:id="@+id/button_add"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="onOpenList"
+            android:src="@drawable/add"
+            android:visibility="invisible"
+            android:text="Add" />
+
+        <ImageButton
+            android:id="@+id/button_refresh"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="onRefresh"
+            android:src="@drawable/ic_refresh"
+            android:visibility="invisible"
             android:text="Add" />
     </LinearLayout>
 

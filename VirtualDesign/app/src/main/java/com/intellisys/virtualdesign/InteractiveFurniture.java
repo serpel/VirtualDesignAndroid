@@ -1,15 +1,12 @@
 // Copyright 2007-2014 metaio GmbH. All rights reserved.
 package com.intellisys.virtualdesign;
 
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
-import android.app.ProgressDialog;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.media.MediaScannerConnection;
 import android.media.MediaScannerConnection.OnScanCompletedListener;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -17,9 +14,10 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.webkit.MimeTypeMap;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
-import com.intellisys.virtualdesign.Utils.FileUtil;
 import com.metaio.sdk.ARViewActivity;
 import com.metaio.sdk.GestureHandlerAndroid;
 import com.metaio.sdk.MetaioDebug;
@@ -31,19 +29,11 @@ import com.metaio.sdk.jni.Rotation;
 import com.metaio.sdk.jni.TrackingValues;
 import com.metaio.sdk.jni.Vector2d;
 import com.metaio.sdk.jni.Vector3d;
-import com.metaio.tools.io.AssetsManager;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
-
-import it.gmariotti.cardslib.library.internal.Card;
 
 public class InteractiveFurniture extends ARViewActivity
 {
@@ -57,58 +47,17 @@ public class InteractiveFurniture extends ARViewActivity
 	private View mLayoutGeometries;
     private int count = 1;
 
-    private BaseFragment mBaseFragment;
     private static String BUNDLE_SELECTEDFRAGMENT = "BDL_SELFRG";
     public int mCurrentTitle = R.string.app_name;
-    private String serverURL =  "";
-    private int mProgressStatus = 0;
-    private ProgressDialog mProgressDialog ;
-    private ProgressBarAsync mProgressbarAsync;
-    private Card mCard;
     private final String TAG =  "InteractiveFurniture.java";
+    public static String FILENAME = "FILENAME";
+    public final int MODEL_LIST_ACTIVITY = 0;
+    private String filepath = "";
 
 	/**
 	 * File where camera image will be temporarily stored
 	 */
 	private File mImageFile;
-
-    public ProgressDialog getProgressDialog() {
-        return mProgressDialog;
-    }
-
-    public boolean executeProgressbarAsync(String url) {
-
-        mProgressDialog.show();
-
-        /** Creating an instance of ProgressBarAsync */
-        mProgressbarAsync = new ProgressBarAsync();
-
-        try {
-            /** ProgressBar starts its execution */
-            mProgressbarAsync.execute(url);
-        }catch (Exception e){
-            Log.e(TAG, "File not exist: " + e.getMessage());
-        }
-
-        return true;
-    }
-
-    private void openFragment(BaseFragment baseFragment) {
-       //if (savedInstanceState == null) {
-            mBaseFragment = new PicassoFragment();
-
-            if(mBaseFragment != null) {
-                FragmentManager fragmentManager = getFragmentManager();
-                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                fragmentTransaction.add(R.id.main_relative, mBaseFragment);
-                fragmentTransaction.commit();
-            }
-        //}
-    }
-
-    public BaseFragment getBaseFragment() {
-        return mBaseFragment;
-    }
 
 	@Override
 	public void onCreate(Bundle savedInstanceState)
@@ -120,39 +69,51 @@ public class InteractiveFurniture extends ARViewActivity
 
 		mCallbackHandler = new MetaioSDKCallbackHandler();
 		mGestureHandler = new GestureHandlerAndroid(metaioSDK, mGestureMask);
-		mMidPoint = new Vector2d();
 
+        //default configuration
+        mMidPoint = new Vector2d();
         objectList = new ArrayList<>();
-
 		mImageFile = new File(Environment.getExternalStorageDirectory(), "target.jpg");
-
-        //new ModelFetcher().execute(serverURL);
-
-        mProgressDialog = new ProgressDialog(this);
-        mProgressDialog.setCancelable(true);
-        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        mProgressDialog.setMessage("Work in Progress ...");
-
-        /*
-        if (savedInstanceState == null) {
-            mBaseFragment = new PicassoFragment();
-
-            if(mBaseFragment != null) {
-                FragmentManager fragmentManager = getFragmentManager();
-                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                fragmentTransaction.add(R.id.container, mBaseFragment);
-                fragmentTransaction.commit();
-            }
-        }*/
 	}
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        switch (requestCode){
+            case MODEL_LIST_ACTIVITY:
+                if(resultCode == RESULT_OK && data != null){
+                    final String filename = data.getStringExtra(FILENAME);
+                    String ext = MimeTypeMap.getFileExtensionFromUrl(filename).toLowerCase();
+                    // validate the extension
+                    //TODO: dinamic validation for support more formats
+                    if(ext.equals("fbx") || ext.equals("obj") || ext.equals("zip"))
+                    {
+                        // if you call addcustommodel it gives a big error
+                        this.filepath = filename;
+
+                        addCustomModel(this.filepath);
+                    }else{
+                        Toast.makeText(this, "3D Format not supported: " + ext, Toast.LENGTH_SHORT).show();
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+    }
 
     public void onOpenList(View v)
     {
         try {
 
-            openFragment(new PicassoFragment());
-
+            //if(savedInstanceState == null) {
+            /*    getSupportFragmentManager().beginTransaction()
+                        .add(R.id.main_relative, new ImagesActivity.ImagesFragment())
+                        .commit();*/
+            //}
+            Intent intent = new Intent(this, ImagesActivity.class);
+            startActivityForResult(intent, MODEL_LIST_ACTIVITY);
         }catch (Exception e){
             Log.e(TAG, "No se puede abrir lista");
         }
@@ -168,6 +129,9 @@ public class InteractiveFurniture extends ARViewActivity
 	protected void onResume()
 	{
 		super.onResume();
+
+       /* if(!this.filepath.isEmpty())
+            addCustomModel(this.filepath);*/
 	}
 
 	@Override
@@ -276,7 +240,29 @@ public class InteractiveFurniture extends ARViewActivity
         if(!isPictureTaken) {
             metaioSDK.requestCameraImage(mImageFile);
             isPictureTaken = true;
+            ImageButton b = (ImageButton)findViewById(R.id.button_add);
+            b.setVisibility(v.VISIBLE);
+
+            ImageButton b1 = (ImageButton)findViewById(R.id.button_screenshot);
+            b1.setVisibility(v.VISIBLE);
+
+            ImageButton b2 = (ImageButton)findViewById(R.id.button_refresh);
+            b2.setVisibility(v.VISIBLE);
+
+            //mGestureHandler.
+            //IGeometry mObject
+
         }else{
+
+            ImageButton b = (ImageButton)findViewById(R.id.button_add);
+            b.setVisibility(v.INVISIBLE);
+
+            ImageButton b1 = (ImageButton)findViewById(R.id.button_screenshot);
+            b1.setVisibility(v.INVISIBLE);
+
+            ImageButton b2 = (ImageButton)findViewById(R.id.button_refresh);
+            b2.setVisibility(v.INVISIBLE);
+
             startCamera();
             isPictureTaken = false;
             // delete the tracking target if generated
@@ -292,8 +278,17 @@ public class InteractiveFurniture extends ARViewActivity
             boolean result = metaioSDK.setTrackingConfiguration("ORIENTATION_FLOOR");
             MetaioDebug.log("Tracking data loaded: " + result);
 
+            //mGestureHandler.removeObjects();
+
+            for(IGeometry i:objectList){
+                i.setVisible(false);
+                //Vector3d translation = metaioSDK.get3DPositionFromViewportCoordinates(1, mMidPoint);
+                //o.setTranslation(translation);
+            }
+            //mGestureHandler.notifyAll();
             mLayoutGeometries.setVisibility(View.GONE);
             mGUIView.bringToFront();
+
         }
     }
 
@@ -306,32 +301,41 @@ public class InteractiveFurniture extends ARViewActivity
 
 	}
 
+    public void onRefresh(View v){
 
-    public void addCustomModel(final File filepath){
-
-            mSurfaceView.queueEvent( new Runnable() {
-                                         @Override
-                                         public void run() {
-                                            loadModel(filepath);
-                                         }
-                                     }
-            );
+        if(!this.filepath.isEmpty()){
+            if(mSurfaceView == null){
+                return;
+            }
+            addCustomModel(this.filepath);
+            this.filepath = "";
+        }
     }
 
-    private void exitsObject(String filename, String homeFolder){
+    //no recomensable usar esto
+    public void addCustomModel(final String filepath){
+            //this run in the Main Thread
+            if(mSurfaceView == null) {
+                return;
+            }
 
-
+                mSurfaceView.queueEvent(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                loadModel(filepath);
+                                            }
+                                        }
+                );
     }
-    public void loadModel(File file)
+
+    public void loadModel(String filepath)
     {
+        File file = new File(filepath);
+
         if(file == null)
             return;
 
-        File filepath =
-                AssetsManager.getAssetPathAsFile(getApplicationContext(),
-                        "tv.obj");
-
-        IGeometry mObject = metaioSDK.createGeometry(filepath);
+        IGeometry mObject = metaioSDK.createGeometry(file);
 
         if (mObject != null)
         {
@@ -342,21 +346,16 @@ public class InteractiveFurniture extends ARViewActivity
 
             Vector3d translation = metaioSDK.get3DPositionFromViewportCoordinates(1, mMidPoint);
             mObject.setTranslation(translation);
-            mObject.setScale(50f);
+            mObject.setScale(70f);
             mObject.setVisible(true);
 
             objectList.add(mObject);
-            /*
-            Vector3d translation = metaioSDK.get3DPositionFromViewportCoordinates(1, mMidPoint);
-            mObject.setTranslation(translation);
-            mObject.setScale(50f);
-            mObject.setVisible(true);
-            metaioSDK.reloadOpenGLResources();
-            */
         }
         else
         {
+            //Toast toast = Toast.makeText(this, "Error loading geometry", Toast.LENGTH_SHORT);
             MetaioDebug.log(Log.ERROR, "Error loading geometry: " + file);
+            //toast.show();
         }
     }
 
@@ -368,6 +367,13 @@ public class InteractiveFurniture extends ARViewActivity
 			// TODO: Load desired tracking data for planar marker tracking
 			boolean result = metaioSDK.setTrackingConfiguration("ORIENTATION_FLOOR");
 			MetaioDebug.log("Tracking data loaded: " + result);
+
+            //aqui se tiene que cargar esto siempre sea como sea.
+            if(!this.filepath.isEmpty()) {
+                //loadModel(this.filepath);
+                addCustomModel(this.filepath);
+                this.filepath = "";
+            }
 		}
 		catch (Exception e)
 		{
@@ -381,6 +387,18 @@ public class InteractiveFurniture extends ARViewActivity
 	{
 		MetaioDebug.log("MetaioSDKCallbackHandler.onGeometryTouched: " + geometry);
 	}
+
+    private void shareImage(String imagePath) {
+
+        if(mImageFile != null) {
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("image/*");
+            File imageFileToShare = new File(imagePath);
+            Uri uri = Uri.fromFile(imageFileToShare);
+            share.putExtra(Intent.EXTRA_STREAM, uri);
+            startActivity(Intent.createChooser(share, "Share Image!"));
+        }
+    }
 
 	final class MetaioSDKCallbackHandler extends IMetaioSDKCallback
 	{
@@ -519,6 +537,8 @@ public class InteractiveFurniture extends ARViewActivity
 						}
 						else
 						{
+                            //share image to another apps
+                            shareImage(screenshotFile.getAbsolutePath());
 							MediaScannerConnection.scanFile(getApplicationContext(),
 									new String[] {screenshotFile.getAbsolutePath()}, new String[] {"image/jpg"},
 									new OnScanCompletedListener()
@@ -544,103 +564,4 @@ public class InteractiveFurniture extends ARViewActivity
 		}
 	}
 
-
-    private class ProgressBarAsync extends AsyncTask<String, Integer, String> {
-
-        private File mFile;
-        /** This callback method is invoked, before starting the background process */
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            mProgressStatus = 0;
-        }
-
-        /** This callback method is invoked on calling execute() method
-         * on an instance of this class */
-
-        @Override
-        protected String doInBackground(String...sUrl) {
-
-            InputStream input = null;
-            OutputStream output = null;
-            HttpURLConnection connection = null;
-
-            if(sUrl.length < 1)
-                return null;
-
-            try {
-                URL url = new URL(sUrl[0]);
-                connection = (HttpURLConnection) url.openConnection();
-                connection.connect();
-
-                if(connection.getResponseCode() != HttpURLConnection.HTTP_OK){
-                    return "Server returned HTTP " + connection.getResponseCode()
-                            + " " + connection.getResponseMessage();
-                }
-
-                int fileLength = connection.getContentLength();
-                input = new BufferedInputStream(connection.getInputStream());
-
-                //Aqui creo el archivo en el storage externo o en el cache
-                FileUtil u = new FileUtil();
-                File file = u.createFileInStorage(getApplicationContext(), url.toString());
-                //file = null;
-                if(file != null && !file.exists()) {
-                    output = new FileOutputStream(file);
-
-                    byte data[] = new byte[4096];
-                    long total = 0;
-                    int count;
-
-                    while ((count = input.read(data)) != -1) {
-                        if (isCancelled()) {
-                            input.close();
-                            return null;
-                        }
-                        total += count;
-                        if (fileLength > 0) {
-                            publishProgress((int) (total * 100 / fileLength));
-                        }
-                        output.write(data, 0, count);
-                    }
-                }
-                mFile = file;
-
-            } catch (Exception e){
-                return e.toString();
-            } finally {
-                try{
-                    if(output != null)
-                        output.close();
-                    if(input != null)
-                        input.close();
-                }catch (IOException ignored)
-                { }
-
-                if (connection != null)
-                    connection.disconnect();
-            }
-            return null;
-        }
-
-
-        /** This callback method is invoked when publishProgress()
-         * method is called */
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            super.onProgressUpdate(values);
-            mProgressDialog.setProgress(mProgressStatus);
-        }
-
-
-        /** This callback method is invoked when the background function
-         * doInBackground() is executed completely */
-        @Override
-        protected void onPostExecute(String result) {
-            super.onPostExecute(result);
-            mProgressDialog.dismiss();
-            addCustomModel(mFile);
-        }
-
-    }
 }

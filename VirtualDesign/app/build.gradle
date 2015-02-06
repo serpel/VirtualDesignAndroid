@@ -8,8 +8,8 @@ android {
         applicationId "com.intellisys.virtualdesign"
         minSdkVersion 19
         targetSdkVersion 21
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
     }
     buildTypes {
         release {
@@ -23,8 +23,6 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:21.0.3'
     compile project(':metaioSDK')
-    compile 'com.google.code.gson:gson:2.2.4'
-    compile 'com.github.gabrielemariotti.cards:cardslib-core:2.0.1'
-    compile 'com.github.gabrielemariotti.cards:cardslib-cards:2.0.1'
-    compile 'com.squareup.picasso:picasso:2.4.0'
+    compile 'com.android.support:support-v4:21.0.3'
+    compile 'com.mcxiaoke.volley:library:1.0.10'
 }
