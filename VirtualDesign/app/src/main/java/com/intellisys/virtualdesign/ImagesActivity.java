@@ -1,5 +1,6 @@
 package com.intellisys.virtualdesign;
 
+import android.app.ActionBar;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -17,9 +18,12 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.intellisys.virtualdesign.Utils.FileUtil;
 
 import org.json.JSONArray;
@@ -49,6 +53,7 @@ public class ImagesActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_images);
+
         if(savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, new ImagesFragment())
@@ -104,7 +109,6 @@ public class ImagesActivity extends ActionBarActivity {
         Intent resultIntent = new Intent();
         resultIntent.putExtra(InteractiveFurniture.FILENAME, filename);
         setResult(RESULT_OK, resultIntent);
-        finish();
     }
 
     private class ProgressBarAsync extends AsyncTask<String, Integer, String> {
@@ -128,7 +132,7 @@ public class ImagesActivity extends ActionBarActivity {
             HttpURLConnection connection = null;
 
             if(sUrl.length < 1)
-                return null;
+                return "URL Legth is less than 1";
 
             try {
                 URL url = new URL(sUrl[0]);
@@ -204,6 +208,7 @@ public class ImagesActivity extends ActionBarActivity {
             //TODO: agregar modelo
             //addCustomModel(mFile);
             sendDataToMainActivity(mFile.getAbsolutePath());
+            finish();
         }
     }
 
@@ -212,6 +217,8 @@ public class ImagesActivity extends ActionBarActivity {
      */
     public static class ImagesFragment extends Fragment implements AdapterView.OnItemClickListener {
 
+        private String url = "http://virtualdesign.azurewebsites.net/api/models/getall";
+        private final String TAG = "JsonRequest";
         private ImageRecordsAdapter mAdapter;
 
         public ImagesFragment() {
@@ -243,17 +250,24 @@ public class ImagesActivity extends ActionBarActivity {
             fetch();
         }
 
+        @Override
+        public void onStop() {
+            super.onStop();
+
+            if (VolleyApplication.getInstance().getRequestQueue() != null) {
+                VolleyApplication.getInstance().getRequestQueue().cancelAll(TAG);
+            }
+        }
+
         private void fetch() {
-            JsonObjectRequest request = new JsonObjectRequest(
-                    "http://virtualdesign.azurewebsites.net/api/models/getall",
-                    null,
-                    new Response.Listener<JSONObject>() {
+
+            // Request a string response from the provided URL.
+            JsonObjectRequest jsObjRequest = new JsonObjectRequest
+                    (Request.Method.GET, this.url, null, new Response.Listener<JSONObject>() {
                         @Override
                         public void onResponse(JSONObject jsonObject) {
                             try {
-                                List<ModelRecord> modelRecords = parse(jsonObject);
-
-                                mAdapter.swapImageRecords(modelRecords);
+                                mAdapter.swapImageRecords(parse(jsonObject));
                             }
                             catch(JSONException e) {
                                 Toast.makeText(getActivity(), "Unable to parse data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -267,11 +281,14 @@ public class ImagesActivity extends ActionBarActivity {
                         }
                     });
 
-            VolleyApplication.getInstance().getRequestQueue().add(request);
+            jsObjRequest.setTag(TAG);
+
+            // Add the request to the RequestQueue.
+            VolleyApplication.getInstance().getRequestQueue().add(jsObjRequest);
         }
 
         private List<ModelRecord> parse(JSONObject json) throws JSONException {
-            ArrayList<ModelRecord> records = new ArrayList<ModelRecord>();
+            ArrayList<ModelRecord> records = new ArrayList<>();
 
             JSONArray jsonImages = json.getJSONArray("models");
 
@@ -282,8 +299,7 @@ public class ImagesActivity extends ActionBarActivity {
                 String modelUrl = jsonImage.getString("ModelUrl");
                 String category = jsonImage.getString("Category");
 
-                ModelRecord record = new ModelRecord(name, imageUrl, modelUrl, category);
-                records.add(record);
+                records.add(new ModelRecord(name, imageUrl, modelUrl, category));
             }
 
             return records;

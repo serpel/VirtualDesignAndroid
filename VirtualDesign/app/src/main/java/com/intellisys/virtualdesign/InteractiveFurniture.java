@@ -76,7 +76,13 @@ public class InteractiveFurniture extends ARViewActivity
 		mImageFile = new File(Environment.getExternalStorageDirectory(), "target.jpg");
 	}
 
-    @Override
+	@Override
+	public void onSurfaceCreated() {
+		super.onSurfaceCreated();
+		addCustomModel(this.filepath);
+	}
+
+	@Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
@@ -91,8 +97,6 @@ public class InteractiveFurniture extends ARViewActivity
                     {
                         // if you call addcustommodel it gives a big error
                         this.filepath = filename;
-
-                        addCustomModel(this.filepath);
                     }else{
                         Toast.makeText(this, "3D Format not supported: " + ext, Toast.LENGTH_SHORT).show();
                     }
@@ -106,16 +110,10 @@ public class InteractiveFurniture extends ARViewActivity
     public void onOpenList(View v)
     {
         try {
-
-            //if(savedInstanceState == null) {
-            /*    getSupportFragmentManager().beginTransaction()
-                        .add(R.id.main_relative, new ImagesActivity.ImagesFragment())
-                        .commit();*/
-            //}
             Intent intent = new Intent(this, ImagesActivity.class);
             startActivityForResult(intent, MODEL_LIST_ACTIVITY);
         }catch (Exception e){
-            Log.e(TAG, "No se puede abrir lista");
+            Log.e(TAG, "onOpenList: error on start Activity 'ImageActivity' "+e.getMessage());
         }
     }
 
@@ -129,9 +127,6 @@ public class InteractiveFurniture extends ARViewActivity
 	protected void onResume()
 	{
 		super.onResume();
-
-       /* if(!this.filepath.isEmpty())
-            addCustomModel(this.filepath);*/
 	}
 
 	@Override
@@ -246,8 +241,8 @@ public class InteractiveFurniture extends ARViewActivity
             ImageButton b1 = (ImageButton)findViewById(R.id.button_screenshot);
             b1.setVisibility(v.VISIBLE);
 
-            ImageButton b2 = (ImageButton)findViewById(R.id.button_refresh);
-            b2.setVisibility(v.VISIBLE);
+            //ImageButton b2 = (ImageButton)findViewById(R.id.button_refresh);
+            //b2.setVisibility(v.VISIBLE);
 
             //mGestureHandler.
             //IGeometry mObject
@@ -260,8 +255,8 @@ public class InteractiveFurniture extends ARViewActivity
             ImageButton b1 = (ImageButton)findViewById(R.id.button_screenshot);
             b1.setVisibility(v.INVISIBLE);
 
-            ImageButton b2 = (ImageButton)findViewById(R.id.button_refresh);
-            b2.setVisibility(v.INVISIBLE);
+            //ImageButton b2 = (ImageButton)findViewById(R.id.button_refresh);
+            //b2.setVisibility(v.INVISIBLE);
 
             startCamera();
             isPictureTaken = false;
@@ -301,7 +296,7 @@ public class InteractiveFurniture extends ARViewActivity
 
 	}
 
-    public void onRefresh(View v){
+    /*public void onRefresh(View v){
 
         if(!this.filepath.isEmpty()){
             if(mSurfaceView == null){
@@ -310,9 +305,8 @@ public class InteractiveFurniture extends ARViewActivity
             addCustomModel(this.filepath);
             this.filepath = "";
         }
-    }
+    }*/
 
-    //no recomensable usar esto
     public void addCustomModel(final String filepath){
             //this run in the Main Thread
             if(mSurfaceView == null) {
